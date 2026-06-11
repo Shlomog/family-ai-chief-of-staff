@@ -37,6 +37,10 @@ to the two things below. (The personal bits are swapped for placeholders.)
 > [Claude Code](https://claude.ai/download) — a normal Mac app — does the actual engineering;
 > you'll mostly be *talking to it*, no terminal required.
 
+> ⚡ **Shortcut: this guide is also a prompt.** Paste the whole thing into Claude Code and say
+> *"build this for me."* It will work through every step it can on its own and pause only when
+> it genuinely needs you — sign-ins, one QR scan, a few choices. Expect about six pauses.
+
 **Two things you'll talk to.** This trips people up, so I'll flag it up front:
 
 - **→ Claude Code** — the engineer on your computer. You talk to it to *build and change* the
