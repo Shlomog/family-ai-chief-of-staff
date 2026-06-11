@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>How I Built a Family AI Chief of Staff (with Claude Code)</title>
+<meta name="description" content="A step-by-step guide to building a family AI chief of staff with NanoClaw and Claude Code — wiki memory, WhatsApp, email, calendar, and proactive automations. Every technical step broken down to the smallest action.">
+<meta name="author" content="Shlomo Garbi">
+<link rel="canonical" href="https://shlomog.github.io/family-ai-chief-of-staff/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How I Built a Family AI Chief of Staff">
+<meta property="og:description" content="It books the table by phone, runs our calendar, and remembers everything — one shared brain in the family group chat. The whole build, step by step. No terminal required.">
+<meta property="og:url" content="https://shlomog.github.io/family-ai-chief-of-staff/">
+<meta property="og:image" content="https://shlomog.github.io/family-ai-chief-of-staff/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="A build log by Shlomo Garbi">
+<meta property="article:author" content="https://www.linkedin.com/in/shlomog/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How I Built a Family AI Chief of Staff">
+<meta name="twitter:description" content="It books the table by phone, runs our calendar, and remembers everything — one shared brain in the family group chat. The whole build, step by step. No terminal required.">
+<meta name="twitter:image" content="https://shlomog.github.io/family-ai-chief-of-staff/social-card.png">
+<style>
+  :root{
+    --bg:#fbfaf8; --surface:#ffffff; --ink:#191b1f; --body:#33373d; --muted:#6b7178;
+    --line:#ece8e1; --line2:#e2ddd4;
+    --accent:#e0533b; --accent-dk:#bd3c25; --accent-soft:#fdefeb;
+    --amber:#b5791a; --amber-soft:#fbf2e1;
+    --green:#2f8a5b; --green-soft:#e9f5ee;
+    --blue:#2f6fb0; --blue-soft:#eaf1f9;
+    --term-bg:#16191f; --term-bar:#0f1217; --term-fg:#e7e9ee; --term-mut:#7b828d;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:760px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);
+    font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  ::selection{background:var(--accent);color:#fff}
+  a{color:var(--accent-dk);text-decoration:none}
+  a:hover{text-decoration:underline}
+  strong{color:var(--ink);font-weight:650}
+  em{color:var(--ink)}
+  code{font-family:var(--mono);font-size:.86em;background:#f0ede7;color:#5a3a31;
+    padding:.12em .38em;border-radius:5px}
+
+  /* ---------- nav ---------- */
+  .nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(180%) blur(12px);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    background:rgba(251,250,248,.82);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:11px 22px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:750;color:var(--ink);
+    letter-spacing:-.01em;font-size:15px;white-space:nowrap}
+  .brand .claw{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+    background:var(--accent);color:#fff;font:800 13px/1 var(--mono);box-shadow:0 1px 0 #0001}
+  .nav-links{margin-left:auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;
+    -ms-overflow-style:none;mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent)}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{font:600 12.5px/1 var(--mono);color:var(--muted);padding:7px 10px;
+    border-radius:8px;white-space:nowrap;letter-spacing:.01em}
+  .nav-links a:hover{color:var(--ink);background:#0000000a;text-decoration:none}
+  .nav-links a.active{color:var(--accent-dk);background:var(--accent-soft)}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;overflow:hidden;background:#14161b;color:#f4f2ef;border-bottom:1px solid #0a0b0e}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(60% 90% at 86% -10%, rgba(224,83,59,.42), transparent 60%),
+      radial-gradient(50% 70% at 6% 0%, rgba(181,121,26,.20), transparent 55%)}
+  .hero::after{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:22px 22px;mask-image:linear-gradient(#000,transparent 70%)}
+  .hero-in{position:relative;max-width:var(--maxw);margin:0 auto;padding:78px 22px 64px}
+  .eyebrow-top{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 var(--mono);
+    letter-spacing:.16em;text-transform:uppercase;color:#f0a594;
+    border:1px solid #ffffff26;border-radius:999px;padding:7px 13px;margin-bottom:22px}
+  .eyebrow-top a{color:#fff;text-decoration:none;border-bottom:1px solid #ffffff66}
+  .eyebrow-top a:hover{border-bottom-color:#fff;text-decoration:none}
+  .hero h1{font-size:clamp(2.15rem,6vw,3.35rem);line-height:1.04;letter-spacing:-.032em;
+    font-weight:800;margin:0 0 18px;color:#fff}
+  .hero h1 .hl{color:var(--accent);background:linear-gradient(transparent 62%,rgba(224,83,59,.22) 0)}
+  .hero p.sub{font-size:1.18rem;line-height:1.6;color:#cfcabf;margin:0 0 28px;max-width:60ch}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:30px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font:600 12.5px/1 var(--mono);
+    color:#e7e2d8;border:1px solid #ffffff24;background:#ffffff0e;border-radius:999px;padding:8px 12px}
+  .chip b{color:#fff;font-weight:700}
+  .hero-cta{display:inline-flex;align-items:center;gap:9px;background:var(--accent);color:#fff;
+    font-weight:700;font-size:15px;padding:13px 20px;border-radius:11px;
+    box-shadow:0 1px 0 #fff2 inset,0 10px 24px -10px rgba(224,83,59,.7)}
+  .hero-cta:hover{background:var(--accent-dk);text-decoration:none}
+  .hero-cta svg{width:16px;height:16px}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .lede{padding:46px 0 8px}
+  .lede p{font-size:1.12rem;color:var(--body)}
+  section[id]{scroll-margin-top:74px;padding:30px 0}
+  .sechead{margin:18px 0 22px}
+  .eyebrow{font:700 12px/1 var(--mono);letter-spacing:.15em;text-transform:uppercase;
+    color:var(--accent-dk);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--accent);border-radius:2px}
+  h2{font-size:clamp(1.55rem,3.4vw,2.05rem);line-height:1.18;letter-spacing:-.02em;
+    font-weight:760;color:var(--ink);margin:0}
+  h3{font-size:1.16rem;font-weight:720;color:var(--ink);letter-spacing:-.01em;margin:30px 0 8px}
+  p{margin:1.05em 0}
+  ul,ol{padding-left:1.3em}
+  li{margin:.34em 0}
+
+  /* ---------- step ---------- */
+  .step{display:grid;grid-template-columns:38px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line)}
+  .step:first-of-type{border-top:0}
+  .step-n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    font:800 15px/1 var(--mono);color:var(--accent-dk);background:var(--accent-soft);
+    border:1.5px solid #f3c9bf;margin-top:2px}
+  .step-b > :first-child{margin-top:0}
+  .step-b > :last-child{margin-bottom:0}
+  .step-t{font-weight:700;color:var(--ink);font-size:1.06rem}
+  .where{display:inline-flex;align-items:center;gap:6px;font:700 10.5px/1 var(--mono);
+    letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:7px;
+    vertical-align:middle;margin-left:8px;border:1px solid transparent}
+  .where::before{content:"";width:7px;height:7px;border-radius:50%}
+  .where.term{color:#3a4048;background:#eef0f2;border-color:#e2e5e8}
+  .where.term::before{background:#9aa1a9}
+  .where.cc{color:var(--accent-dk);background:var(--accent-soft);border-color:#f3cdc3}
+  .where.cc::before{background:var(--accent)}
+  .where.phone{color:#256a47;background:var(--green-soft);border-color:#cce7d8}
+  .where.phone::before{background:var(--green)}
+  .where.browser{color:#27557f;background:var(--blue-soft);border-color:#cfe0ef}
+  .where.browser::before{background:var(--blue)}
+
+  /* ---------- terminal block ---------- */
+  .term{position:relative;background:var(--term-bg);border-radius:12px;overflow:hidden;margin:13px 0;
+    border:1px solid #04050799;box-shadow:0 1px 2px rgba(0,0,0,.05),0 16px 30px -20px rgba(0,0,0,.45)}
+  .term-bar{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--term-bar);
+    border-bottom:1px solid #00000055}
+  .d{width:11px;height:11px;border-radius:50%}
+  .d.r{background:#ff5f57}.d.y{background:#febc2e}.d.g{background:#28c840}
+  .term-label{margin-left:7px;font:600 11.5px/1 var(--mono);color:var(--term-mut);letter-spacing:.02em}
+  .term.cc .term-label{color:#f0a08f}
+  .copy{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:#1c212a;
+    border:1px solid #2c323d;color:#aeb6c2;font:600 11px/1 var(--mono);padding:6px 9px;
+    border-radius:7px;cursor:pointer;transition:.15s}
+  .copy:hover{background:#252b36;color:#fff;border-color:#3a4250}
+  .term pre{margin:0;padding:14px 16px;overflow-x:auto;color:var(--term-fg);font:0.855rem/1.65 var(--mono)}
+  .term.cc pre{color:#fbe9e3}
+  .term pre .c{color:#727a86}
+
+  /* ---------- light code (file trees / file contents) ---------- */
+  .code{background:#f6f4f0;border:1px solid var(--line2);border-radius:11px;overflow:hidden;margin:13px 0}
+  .code .term-bar{background:#efece6;border-bottom:1px solid var(--line2)}
+  .code .term-label{color:#8a8378}
+  .code pre{margin:0;padding:13px 16px;overflow-x:auto;color:#46413a;font:0.83rem/1.62 var(--mono)}
+  .code .k{color:var(--accent-dk)}
+  .code .cm{color:#9a9486}
+
+  /* ---------- say (chat bubble) ---------- */
+  .say{position:relative;background:var(--accent-soft);border:1px solid #f4d4cb;border-radius:14px;
+    border-top-left-radius:4px;padding:14px 16px 13px;margin:15px 0 13px;color:#7a2a18;font-size:1.02rem}
+  .say::before{content:"SAY TO NANO";position:absolute;top:-9px;left:12px;font:700 9.5px/1 var(--mono);
+    letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 7px;border-radius:5px}
+  .say p{margin:.2em 0}
+  .say em,.say strong{color:#6f2614}
+  /* ---------- tell Claude Code (build request) ---------- */
+  .tell{position:relative;background:#eef1f6;border:1px solid #dbe1e9;border-radius:14px;
+    border-top-left-radius:4px;padding:14px 16px 13px;margin:15px 0 13px;color:#2b3440;font-size:1.02rem}
+  .tell::before{content:"TELL CLAUDE CODE";position:absolute;top:-9px;left:12px;font:700 9.5px/1 var(--mono);
+    letter-spacing:.12em;color:#fff;background:#475569;padding:4px 7px;border-radius:5px}
+  .tell p{margin:.2em 0}
+  .tell em,.tell strong{color:#1f2937}
+  .tell-inline,.say-inline{font:700 11px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;
+    padding:3px 7px;border-radius:6px;white-space:nowrap;vertical-align:baseline}
+  .tell-inline{color:#fff;background:#475569}
+  .say-inline{color:#fff;background:var(--accent)}
+
+  /* ---------- callouts ---------- */
+  .callout{display:grid;grid-template-columns:26px 1fr;gap:12px;border-radius:12px;padding:14px 16px;
+    margin:16px 0;font-size:.99rem;border:1px solid}
+  .callout .ic{width:24px;height:24px;display:grid;place-items:center;font-size:15px;margin-top:1px;font-weight:700}
+  .callout > div > :first-child{margin-top:0}.callout > div > :last-child{margin-bottom:0}
+  .callout.tip{background:var(--green-soft);border-color:#cfe9da}
+  .callout.tip .ic{color:var(--green)}
+  .callout.note{background:var(--blue-soft);border-color:#d4e3f1}
+  .callout.note .ic{color:var(--blue)}
+  .callout.warn{background:var(--amber-soft);border-color:#f0e0bf}
+  .callout.warn .ic{color:var(--amber)}
+  .callout b{color:var(--ink)}
+
+  /* ---------- timeline ---------- */
+  .timeline{margin:18px 0 6px;position:relative;padding-left:6px}
+  .tl{position:relative;padding:0 0 22px 30px;border-left:2px solid var(--line2)}
+  .tl:last-child{border-left-color:transparent;padding-bottom:0}
+  .tl::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  .tl time{display:inline-block;font:700 12px/1 var(--mono);color:var(--accent-dk);letter-spacing:.04em;margin-bottom:5px}
+  .tl p{margin:0;color:var(--body)}
+
+  /* ---------- feature cards ---------- */
+  .feats{display:grid;gap:12px;margin:18px 0}
+  .feat{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .feat h4{margin:0 0 4px;font-size:1.02rem;color:var(--ink);font-weight:720;display:flex;align-items:center;gap:9px}
+  .feat h4 .fi{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
+    background:var(--accent-soft);color:var(--accent-dk);font-size:14px;flex:none}
+  .feat p{margin:0;font-size:.97rem;color:var(--body)}
+
+  /* ---------- recipes ---------- */
+  .recipe{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+    margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.02)}
+  .recipe h4{margin:0 0 6px;font-size:1.05rem;color:var(--ink);font-weight:730;display:flex;align-items:center;gap:9px}
+  .recipe h4 .rn{font:800 12px/1 var(--mono);color:#fff;background:var(--accent);border-radius:6px;padding:5px 7px;flex:none}
+  .result{display:grid;grid-template-columns:18px 1fr;gap:9px;font-size:.97rem;color:var(--body)}
+  .result .arr{color:var(--accent);font-weight:800}
+  .result b{color:var(--ink)}
+
+  /* ---------- checklist ---------- */
+  .check{list-style:none;padding:0;margin:18px 0}
+  .check li{display:grid;grid-template-columns:24px 1fr;gap:11px;padding:9px 0;border-top:1px solid var(--line);align-items:start}
+  .check li:first-child{border-top:0}
+  .check .ck{width:22px;height:22px;border-radius:6px;background:var(--green-soft);color:var(--green);
+    display:grid;place-items:center;margin-top:2px;flex:none}
+  .check .ck svg{width:13px;height:13px}
+  .check b{color:var(--ink)}
+
+  /* ---------- footer ---------- */
+  .foot{background:#14161b;color:#cfcabf;margin-top:40px;border-top:1px solid #0a0b0e;position:relative;overflow:hidden}
+  .foot::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(55% 100% at 80% 120%,rgba(224,83,59,.35),transparent 60%)}
+  .foot-in{position:relative;max-width:var(--maxw);margin:0 auto;padding:54px 22px 60px;text-align:center}
+  .foot h2{color:#fff;margin:0 0 12px}
+  .foot p{color:#bdb8ad;max-width:54ch;margin:0 auto 24px}
+  .foot em,.foot strong,.hero em,.hero strong{color:#fff}
+  .foot .byline{margin-top:30px;font-size:15px;color:#bdb8ad}
+  .foot .byline a{color:#fff;font-weight:650;text-decoration:none;border-bottom:1px solid #ffffff55}
+  .foot .byline a:hover{border-bottom-color:#fff;text-decoration:none}
+  .foot .fine{margin-top:14px;font:500 12.5px/1.6 var(--mono);color:#7e7a71}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:600px){
+    body{font-size:16px}
+    .hero-in{padding:54px 18px 46px}
+    .wrap{padding:0 18px}
+    .step{grid-template-columns:30px 1fr;gap:12px}
+    .step-n{width:28px;height:28px;font-size:13px}
+    .nav-in{padding:10px 16px}
+    .brand span.bt{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="nav-in">
+    <a href="#top" class="brand"><span class="claw">N</span><span class="bt">Chief&nbsp;of&nbsp;Staff</span></a>
+    <nav class="nav-links">
+      <a href="#day">Day</a>
+      <a href="#trust">Why</a>
+      <a href="#install">Install</a>
+      <a href="#memory">Memory</a>
+      <a href="#whatsapp">WhatsApp</a>
+      <a href="#email">Email</a>
+      <a href="#calendar">Calendar</a>
+      <a href="#proactive">Proactive</a>
+      <a href="#advanced">Advanced</a>
+      <a href="#privacy">Privacy</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-in">
+    <span class="eyebrow-top">A build log · by&nbsp;<a href="https://www.linkedin.com/in/shlomog/">Shlomo&nbsp;Garbi</a></span>
+    <h1>How I Built a Family AI <span class="hl">Chief of Staff</span></h1>
+    <p class="sub">It picks up the phone and books a table in a real voice — but the party tricks aren't the point. The point is that it runs our whole household from our family group chat: my partner and I both hand it the week — pickups, appointments, who's covering what — and it keeps everything straight. It does the same for me alone, too: triages my inbox, runs my calendar, catches the bill I'd have forgotten.</p>
+    <div class="chips">
+      <span class="chip">⏱ <b>~1 hour</b></span>
+      <span class="chip">🖥 macOS · Linux · WSL2</span>
+      <span class="chip">🔒 runs in containers</span>
+      <span class="chip">⚙️ NanoClaw + Claude Code</span>
+    </div>
+    <a class="hero-cta" href="#install">Start building
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+</section>
+
+<main class="wrap">
+
+  <!-- LEDE -->
+  <div class="lede">
+    <p>I named mine <strong>Nano</strong> — after <a href="https://nanoclaw.dev">NanoClaw</a>, the technology she runs on (more on it below). The simplest way I can describe her: <strong>a second brain that never forgets</strong>. She remembers everything across every conversation — the kids' schedules, what my partner asked me to deal with, which doctor said what, who owes whom, the thing I mentioned a month ago — so I never have to re-explain myself.</p>
+    <p>And she belongs to the whole house, not just me. She lives in our <strong>family group chat</strong>, so my partner and I talk to the <em>same</em> assistant — one shared brain for the household instead of two people each trying to hold it all. My partner hands her one thing, I hand her another, and it all lands in one place; nothing slips through the gap between us. That's the <em>family</em> in family chief of staff — it isn't an add-on, it's half the reason I built her.</p>
+    <p>And she <em>acts</em> on it. I say "book the 1pm pickleball" and it's done. She texts vendors, adds things to our calendars, and runs in the background: a morning brief, birthday watches, school-email alerts, a running list of my partner's asks so nothing slips (I call it my nag-list). When I need something looked up — a listing, a schedule, a number — she finds it live.</p>
+    <p>Here's why it matters. I've got a demanding job, three kids, and a lot moving at once. What wears me down isn't the big decisions — it's the <em>forty small things</em> I'm supposed to remember. Nano carries that load so I show up for the things that count. It's not magic; it's really good memory plus a system that quietly runs in the background. But it genuinely changed how I move through my week.</p>
+    <p>None of it is a demo — it's my actual daily setup, living in a WhatsApp thread. People keep asking how it works, so here's the whole build, from an empty machine to this, using <a href="https://nanoclaw.dev">NanoClaw</a> and Claude Code. <strong>Every step is broken down to the smallest action</strong>, you never open a terminal, and the personal bits are swapped for placeholders. Copy it top to bottom.</p>
+    <div class="callout tip">
+      <div class="ic">✦</div>
+      <div><b>What you'll need:</b> a Mac or Linux machine (Windows works via WSL2) and about an hour. <a href="https://claude.ai/download">Claude Code</a> — a normal Mac app — does the actual engineering; you'll mostly be <em>talking to it</em>, no terminal required.</div>
+    </div>
+  </div>
+
+  <!-- 0 DAY -->
+  <section id="day">
+    <div class="sechead">
+      <div class="eyebrow">00 · The promise</div>
+      <h2>A day with Nano</h2>
+    </div>
+    <p>To set expectations, here's a normal Tuesday in our house — watch how the same brain serves both of us:</p>
+    <div class="timeline">
+      <div class="tl"><time>7:15 AM</time><p>The brief lands: the whole family's day in one message — my 9:30 call, my partner's late shift, swim at 4 (my partner's on pickup), the permission slip due Friday, the gas bill autopay tomorrow.</p></div>
+      <div class="tl"><time>9:10 AM</time><p>An email from the school arrives. Nano reads it and posts in the family chat: <em>"Half-day Friday — neither of your calendars has the afternoon covered. Want me to ask the sitter?"</em></p></div>
+      <div class="tl"><time>12:40 PM</time><p>My partner, in the family chat: "We're out of the oat milk the kids like — and someone needs to grab the dry cleaning." The milk goes on the grocery list; the dry cleaning lands on <em>my</em> open list, and Nano will nudge me each morning until I say done.</p></div>
+      <div class="tl"><time>3:30 PM</time><p>I message Nano in my DM: "Book the 1pm pickleball Saturday." Nano: <em>"Done — but the family calendar has you on birthday-party duty 12–2 Saturday; your partner added it yesterday. Book 3pm instead?"</em> A conflict I didn't know existed — caught because both of us feed the same brain.</p></div>
+      <div class="tl"><time>6:40 PM</time><p>In the family chat: <em>"You're both free Wednesday evening and the sitter's around — book the usual place for 7?"</em> My partner replies 👍. Nano calls the restaurant.</p></div>
+    </div>
+    <p>None of this is magic. It's four ingredients — <strong>memory</strong>, the <strong>channels</strong> our family already talks in, a few <strong>tools</strong> (email, calendar, phone), and <strong>proactivity</strong> (it acts without being asked). The trick that makes it a <em>family</em> chief of staff: both of us feed the same brain, so what my partner tells it on Monday saves me on Saturday. Let's build each piece.</p>
+  </section>
+
+  <!-- 1 TRUST -->
+  <section id="trust">
+    <div class="sechead">
+      <div class="eyebrow">01 · Foundations</div>
+      <h2>What NanoClaw is — and why I trust it</h2>
+    </div>
+    <p>I wouldn't wire a black box into my family's logistics. The reason I use NanoClaw is that I can actually understand it:</p>
+    <div class="feats">
+      <div class="feat"><h4><span class="fi">◇</span>It's small</h4><p>One host process and a handful of files. If I want to know how something works, I ask Claude Code to walk me through that file.</p></div>
+      <div class="feat"><h4><span class="fi">⚙</span>It doesn't reinvent the agent</h4><p>The big win: NanoClaw doesn't build its own AI layer at all. The hard parts — the model, the reasoning, the tool-running — are outsourced to Anthropic's official <a href="https://platform.claude.com/docs/en/api/agent-sdk/overview">Claude Agent SDK</a>, the same engine that powers Claude Code. NanoClaw keeps only the plumbing it actually needs: routing messages, containers, memory.</p></div>
+      <div class="feat"><h4><span class="fi">💻</span>No special hardware</h4><p>It runs on the Mac or Linux machine you already own — no Mac mini, no cloud server to rent. Leave a machine on and it keeps working around the clock; a spare laptop or an old desktop is plenty.</p></div>
+      <div class="feat"><h4><span class="fi">▣</span>Agents run in containers</h4><p>Each assistant runs in its own Linux container and can only see folders I explicitly mount. "Let it run bash" is safe because bash runs <em>in the box</em>, not on my laptop.</p></div>
+      <div class="feat"><h4><span class="fi">🔑</span>Credentials never enter the container</h4><p>API keys live in a local vault (OneCLI). The real credential is injected at the last moment, at the proxy. The container never holds a usable secret — nothing to steal from inside.</p></div>
+    </div>
+    <p>That's the trade I wanted: capable enough to act for me, contained enough that I sleep fine. Repo &amp; docs: <a href="https://github.com/qwibitai/nanoclaw">github.com/qwibitai/nanoclaw</a> · <a href="https://docs.nanoclaw.dev">docs.nanoclaw.dev</a>.</p>
+  </section>
+
+  <!-- 2 INSTALL -->
+  <section id="install">
+    <div class="sechead">
+      <div class="eyebrow">02 · Setup</div>
+      <h2>Install it — step by step</h2>
+    </div>
+    <p>Here's the part people overthink. On a Mac, Claude Code is just an app — you never open a terminal. You install it, point it at an empty folder, and <em>ask it to do the rest</em>: it picks and installs the right container runtime for your machine, clones NanoClaw, and runs the setup. You don't need to know what any of that means.</p>
+    <div class="callout note">
+      <div class="ic">›</div>
+      <div><b>Legend.</b> Only two places to act: <span class="where browser">Your&nbsp;browser</span> (one download — the app itself) and <span class="where cc">Claude&nbsp;Code</span> (everything else, by just asking). On a Mac there's no terminal step at all.</div>
+    </div>
+
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Install the Claude Code app <span class="where browser">Your browser</span></div>
+      <p>On a Mac, Claude Code is a normal desktop app — you open it like Notes or Slack, no terminal involved. Download it from <a href="https://claude.ai/download">claude.ai/download</a> and install. Everything below, you hand to the app. <em>(Linux works too, via the Claude Code CLI; on Windows, enable WSL2 first — <code>wsl --install</code> in an Administrator PowerShell — and run it there.)</em></p>
+    </div></div>
+
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Ask Claude Code to set up your machine <span class="where cc">Claude Code</span></div>
+      <p>Make an empty folder, open Claude Code inside it, and tell it:</p>
+      <div class="tell"><p><em>Set up NanoClaw on this machine. Check my system and install whatever it needs — including the right container runtime for how much disk space I have — then clone the repo and start the guided setup.</em></p></div>
+      <p>It checks your OS and free space, then installs and configures a <strong>container runtime</strong> — the sandbox each agent runs in. There's more than one option: full <b>Docker Desktop</b> on a roomy machine, or a lighter runtime (<b>Colima</b>, <b>OrbStack</b>, or macOS's native <b>Apple Container</b>) when space is tight. <strong>You don't pick — Claude Code does</strong>, based on your actual machine. It also installs Node and pnpm if they're missing and clones NanoClaw — no terminal typing from you.</p>
+    </div></div>
+
+    <div class="callout note">
+      <div class="ic">ℹ</div>
+      <div><b>Why not just "install Docker"?</b> Docker Desktop is heavy. On my machine there wasn't room for it, so Claude Code set me up with a lighter runtime instead — same result, a fraction of the footprint. That's exactly why you let it decide rather than follow a fixed command.</div>
+    </div>
+
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <div class="step-t">Answer the guided setup <span class="where cc">Claude Code</span></div>
+      <p>The final piece is a short, interactive Q&amp;A, and it happens right in the Claude Code app — no separate terminal window. Claude Code runs the setup (<code>bash nanoclaw.sh</code> under the hood) and you answer its questions there. Three things:</p>
+      <ol>
+        <li><b>How to sign in to Claude</b> — a Claude Pro/Max subscription (paste a token) or an Anthropic API key.</li>
+        <li><b>Which folders the agent may see</b> — keep it minimal to start; widen later.</li>
+        <li><b>Your first channel</b> — Telegram, Discord, WhatsApp, or a local CLI. To just see it work, pick <b>CLI</b>; we wire WhatsApp properly in §5.</li>
+      </ol>
+    </div></div>
+
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <div class="step-t">Wait for the first build</div>
+      <p>It downloads and assembles the agent image — <b>a few minutes</b>. When it's done you'll see a success summary, and NanoClaw installs itself as a background service that starts on login and restarts itself if it crashes.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">5</div><div class="step-b">
+      <div class="step-t">If anything trips <span class="where cc">Claude Code</span></div>
+      <p>You don't debug it yourself — that's the point of building on Claude Code. Just tell it:</p>
+      <div class="tell"><p><em>Something isn't working — check the logs and figure out why.</em></p></div>
+    </div></div>
+
+    <div class="callout tip">
+      <div class="ic">✓</div>
+      <div><b>You now have a running assistant.</b> Everything from here is <em>adding capabilities</em> — and each one is the same move: just ask.</div>
+    </div>
+  </section>
+
+  <!-- 3 AGENT -->
+  <section id="agent">
+    <div class="sechead">
+      <div class="eyebrow">03 · The mindset</div>
+      <h2>Meet your agent — the one rule that matters</h2>
+    </div>
+    <p>When setup finishes you get a welcome message. The default trigger word is <code>@Andy</code>. I renamed mine — and <em>how</em> I did it is the most important habit in this whole guide:</p>
+    <div class="tell"><p><em>Change the trigger word to @Nano.</em></p></div>
+    <p>That's it — I didn't run a command, I just <em>asked</em>. NanoClaw has no settings screen, and there are no commands to memorize: <strong>you describe what you want and Claude Code builds it</strong>, mapping your request to the right tool under the hood. Shorter replies? Tell it. A custom greeting when you say "good morning"? Tell it. The change sticks.</p>
+    <p>This guide has you talking to <strong>two</strong> things, and the cards make it obvious which is which: <span class="tell-inline">tell&nbsp;Claude&nbsp;Code</span> to <em>build and change</em> the system (install integrations, rename the trigger), and <span class="say-inline">say&nbsp;to&nbsp;Nano</span> to set <em>how it behaves</em> day to day (rules, reminders, tasks). Both are just plain English.</p>
+  </section>
+
+  <!-- 4 MEMORY -->
+  <section id="memory">
+    <div class="sechead">
+      <div class="eyebrow">04 · Memory</div>
+      <h2>Give it a memory (the wiki)</h2>
+    </div>
+    <p>A chatbot forgets you between messages. But a household runs on a thousand small facts — who's lactose intolerant, which day swim moved to, where the spare key is, what you're saving the good wine for — and usually <em>one person</em> ends up carrying them all. <strong>Memory is the difference</strong>, so it's the first thing I add.</p>
+
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Turn on the wiki <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Give my assistant a persistent wiki memory — one it reads before replying and writes to after.</em></p></div>
+      <p>It scaffolds a persistent, plain-Markdown knowledge base the agent reads before answering and writes to after learning something:</p>
+      <div class="code"><div class="term-bar"><span class="term-label">wiki/ structure</span></div><pre>wiki/
+  index.md          <span class="cm">← table of contents</span>
+  log.md            <span class="cm">← timestamped changelog of everything learned</span>
+  people/           <span class="cm">← partner, kids, the sitter, the plumber…</span>
+  places/           <span class="cm">← restaurants, the pediatrician, schools, gym</span>
+  projects/         <span class="cm">← anything ongoing (kitchen reno, summer trip)</span>
+  topics/           <span class="cm">← patterns &amp; preferences that don't fit above</span></pre></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Teach it something</div>
+      <p>In your chat with the agent, just talk:</p>
+      <div class="say"><p><em>My partner is Sam — lactose intolerant, birthday March 14, works late Thursdays.</em></p></div>
+      <p>It writes a <code>people/sam.md</code> file that reads like plain notes:</p>
+      <div class="code"><div class="term-bar"><span class="term-label">wiki/people/sam.md</span></div><pre><span class="cm">---</span>
+<span class="k">name:</span> Sam
+<span class="k">type:</span> person
+<span class="k">relationship:</span> partner
+<span class="k">last_verified:</span> 2026-06-01
+<span class="cm">---</span>
+
+# Sam
+- Lactose intolerant — no dairy.
+- Birthday: March 14.
+- Works late on Thursdays.</pre></div>
+      <p>And here's what makes it a <em>household</em> brain rather than mine: once Nano is in the family chat (next section), my partner feeds the same files. When swim moves to Thursdays and my partner mentions it there, the kid's page updates — nobody has to repeat it to me, it's simply correct in tomorrow's brief. One memory, written from both sides. I stopped being the single point of failure for family facts.</p>
+    </div></div>
+
+    <div class="callout warn">
+      <div class="ic">!</div>
+      <div><b>Two rules make the memory trustworthy</b> — they fix the #1 failure mode of AI assistants. <b>(1) No "saved" without an actual save:</b> the agent can't say "Got it, noted!" unless it really wrote the file that turn — there's even a host-side backstop that catches a fake claim and forces the real write. <b>(2) Every write is logged</b>, so the memory is searchable across time.</div>
+    </div>
+    <p>On top of that, the wiki quietly tidies itself — a nightly reflection that catches things it should have saved, plus weekly cleanup and digest passes you never see.</p>
+    <div class="callout tip"><div class="ic">✦</div><div><b>Browse its brain.</b> Point <a href="https://obsidian.md">Obsidian</a> at the <code>wiki/</code> folder and read/edit the whole thing as a normal notes vault.</div></div>
+  </section>
+
+  <!-- 5 WHATSAPP -->
+  <section id="whatsapp">
+    <div class="sechead">
+      <div class="eyebrow">05 · Channels</div>
+      <h2>Put it in WhatsApp — and move the family in</h2>
+    </div>
+    <p>Everything so far is a private assistant. This section is where it becomes the <em>family</em> chief of staff — the whole point of the build. You move Nano into the group chat your household already runs on, and from then on both of you talk to the same brain: no special app, no "ask me to ask it." For us that's WhatsApp.</p>
+
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Decide which number Nano uses</div>
+      <p>Link it to <em>your own</em> WhatsApp (it prefixes messages with its name), or give it a <b>dedicated number</b> (a cheap second SIM/eSIM). I went dedicated, so Nano is its own participant my partner can talk to directly.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Install WhatsApp <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Connect my assistant to WhatsApp.</em></p></div>
+      <p>It installs the adapter, then asks how to authenticate. Choose <b>QR code in browser</b>.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <div class="step-t">Link the phone <span class="where phone">Your phone</span></div>
+      <p>A browser window opens with a QR code. On the phone holding Nano's number:</p>
+      <ol>
+        <li>Open <b>WhatsApp → Settings → Linked Devices → Link a Device</b>.</li>
+        <li>Scan the QR code in the browser.</li>
+        <li>Wait for <b>"Authenticated!"</b> (the QR expires in ~60s — if you miss it, Claude Code re-runs the command).</li>
+      </ol>
+    </div></div>
+
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <div class="step-t">Wire your own DM first <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Set up my own WhatsApp DM with the assistant.</em></p></div>
+      <p>It asks the channel (<b>WhatsApp</b>), your number, your name, and the assistant's name (I said <b>Nano</b>), then sends you a welcome DM. Reply to confirm the loop works.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">5</div><div class="step-b">
+      <div class="step-t">Create the family group <span class="where phone">Your phone</span></div>
+      <p>On your phone, make a normal WhatsApp group containing <b>you, your partner, and Nano's number</b>.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">6</div><div class="step-b">
+      <div class="step-t">Wire that group <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Wire this new WhatsApp group to my assistant.</em></p></div>
+      <p>It lists your WhatsApp groups. Pick the new one and make two choices it walks you through:</p>
+      <ul>
+        <li><b>Who can talk to it?</b> Set unknown-sender policy to <b>request approval</b> — if a stranger is ever added, Nano checks with <em>you</em> first. Nobody hijacks your assistant just by being added to a thread.</li>
+        <li><b>One brain or two?</b> <b>Shared agent</b> (what I use) — one memory across your DM and the family group. Or <b>separate agents</b> — fully private, no shared memory (good for a work channel).</li>
+      </ul>
+    </div></div>
+
+    <div class="step"><div class="step-n">7</div><div class="step-b">
+      <div class="step-t">Add the privacy rule</div>
+      <p>Because mine is a shared brain, I told Nano:</p>
+      <div class="say"><p><em>In the family group, never surface anything from my private DM unless I bring it up there first.</em></p></div>
+      <p>One sentence, and that's the guardrail.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">8</div><div class="step-b">
+      <div class="step-t">Test the shared brain</div>
+      <p>Have your partner ask Nano for something in the group — then bring it up yourself an hour later. Same assistant, same memory: what one of you tells it, the other benefits from. That's the moment it stops being <em>your</em> assistant and becomes the household's. 🎉 (The same one-ask pattern works for Telegram, Discord, Slack, iMessage, Signal, and more — just tell Claude Code which you want.)</p>
+    </div></div>
+  </section>
+
+  <!-- 6 EMAIL -->
+  <section id="email">
+    <div class="sechead">
+      <div class="eyebrow">06 · Tools</div>
+      <h2>Let it read your email</h2>
+    </div>
+    <p>A chief of staff that can't see your inbox is flying blind — and half of what runs a household arrives by email: school announcements, camp forms, appointment reminders, bills.</p>
+
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Install the Gmail tool <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Add Gmail so it can read, search, and draft my email.</em></p></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Connect Gmail to the vault <span class="where browser">Your browser</span></div>
+      <p>When the skill asks, open the OneCLI dashboard and connect Google:</p>
+      <ol>
+        <li>Go to <b>http://127.0.0.1:10254</b></li>
+        <li><b>Apps → Gmail → Connect</b></li>
+        <li>Sign in with the Google account the agent should act as, and approve.</li>
+      </ol>
+      <div class="callout note"><div class="ic">🔒</div><div>This is the <em>only</em> place your Google login happens. The token stays in the vault; the container only sees a placeholder, and the vault swaps in the real token at request time. Your email is readable by your assistant without your credentials living anywhere an agent could leak them.</div></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <div class="step-t">Let it finish</div>
+      <p>Claude Code wires the tool into your agent, rebuilds the container image (~1 min), and restarts the service. Confirm when it prompts.</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <div class="step-t">Test it</div>
+      <div class="say"><p><em>List my Gmail labels.</em> &nbsp;—&nbsp; <em>What's in my inbox today that actually needs me?</em></p></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">5</div><div class="step-b">
+      <div class="step-t">Make it a habit</div>
+      <div class="say"><p><em>Every morning, triage my inbox — surface only what needs me, draft replies for the obvious ones, and never send anything without showing me first.</em></p></div>
+      <div class="say"><p><em>Anything from the school is for both of us — flag it in the family chat, not just to me.</em></p></div>
+      <p>That second rule is how the 9:10am moment in the timeline happens: the email arrives in <em>my</em> inbox, but the household hears about it together.</p>
+    </div></div>
+  </section>
+
+  <!-- 7 CALENDAR -->
+  <section id="calendar">
+    <div class="sechead">
+      <div class="eyebrow">07 · Tools</div>
+      <h2>Let it run your calendar</h2>
+    </div>
+
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Install the Calendar tool <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Add my Google Calendar.</em></p></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Connect Google Calendar <span class="where browser">Your browser</span></div>
+      <p>Same flow: <b>http://127.0.0.1:10254 → Apps → Google Calendar → Connect → sign in.</b> It supports multiple calendars and accounts (handy when you and your partner keep separate ones).</p>
+    </div></div>
+
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <div class="step-t">Let it wire &amp; rebuild, then test</div>
+      <div class="say"><p><em>What's on my calendar Thursday?</em></p></div>
+    </div></div>
+
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <div class="step-t">Add the rules that make it a chief of staff</div>
+      <div class="say"><p><em>When I say "add it to our calendar," invite my partner too.</em></p></div>
+      <div class="say"><p><em>Never tell me what day of the week something is from memory — always check the calendar first.</em></p></div>
+      <p>That second rule quietly prevents a confident "that's a Thursday" from sending you to the dentist on the wrong day. And because one assistant sees both calendars, it catches cross-partner conflicts — the Saturday clash in the timeline was caught exactly this way: my partner's plan, my booking, one brain holding both.</p>
+    </div></div>
+  </section>
+
+  <!-- 8 PROACTIVE -->
+  <section id="proactive">
+    <div class="sechead">
+      <div class="eyebrow">08 · The magic</div>
+      <h2>Make it proactive — the recipes</h2>
+    </div>
+    <p>Everything so far is <em>reactive</em> — it answers when asked. The chief-of-staff feeling comes from acting <strong>before</strong> you ask. That's three things working together: <strong>scheduled tasks</strong> (the <em>when</em>), <strong>prose rules</strong> in its memory (the <em>how &amp; tone</em>), and <strong>the wiki</strong> (the <em>what it already knows</em>).</p>
+    <div class="callout note"><div class="ic">⚙</div><div>You never touch cron syntax — you describe the behavior. Under the hood: schedules run in <em>your</em> timezone, some tasks are silent by design (a weekly digest written to the wiki) while reminders message you, and a task can run a tiny check first and only wake the assistant if there's something worth saying — so it can watch something hourly without spamming you on quiet days.</div></div>
+    <p>Each recipe is <strong>one sentence.</strong> Some I sent from my DM; the family ones went straight in the group chat, where my partner sees them, amends them, and adds their own. The arrow shows what it sets up.</p>
+
+    <div class="recipe">
+      <h4><span class="rn">01</span>The morning brief</h4>
+      <div class="say"><p><em>Every morning at 7:30, brief me: both our calendars, the kids' day, any email that needs one of us, and what's still open on my list. Keep it short.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>A daily 7:30am task that pulls <b>both calendars + email + open items</b> into one tight digest of the household's day — who's where, who's on pickup, what's due. You're waiting on it, so it always messages you.</div></div>
+    </div>
+
+    <div class="recipe">
+      <h4><span class="rn">02</span>The nag-list</h4>
+      <div class="say"><p><em>When my partner asks me to handle something in the family chat, track it. Remind me each morning what's still open, until I say done.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>Every "can you deal with…" becomes a tracked item the moment it's said — nobody transcribing chores into an app. It rides the <b>morning brief</b> until it's closed. Nothing my partner asks me falls through the cracks again — this one recipe has saved me more grief than the rest combined.</div></div>
+    </div>
+
+    <div class="recipe">
+      <h4><span class="rn">03</span>Date night</h4>
+      <div class="say"><p><em>Each week, check if my partner and I both have a free evening and the sitter's around. If so, suggest a night and offer to book somewhere we like.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>A weekly check that cross-references <b>both calendars</b> and sitter availability, pulls "places we like" from the wiki, and proposes a plan. Say yes and it books — by phone (next section).</div></div>
+    </div>
+
+    <div class="recipe">
+      <h4><span class="rn">04</span>Weeknight dinners</h4>
+      <div class="say"><p><em>On Sundays, plan the week's dinners around what we've got going on, and build a grocery list from what we usually buy.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>Reads the calendar (busy nights get easy meals), respects dietary notes from the wiki (no dairy for Sam), and keeps a list your partner can add to from the group chat all week.</div></div>
+    </div>
+
+    <div class="recipe">
+      <h4><span class="rn">05</span>The summer-vacation project</h4>
+      <div class="say"><p><em>We're planning a week away this summer. Track it as a project: keep our options, what's booked, what's still open. Check in with me when something needs a decision.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>Creates a <code>wiki/projects/summer-trip.md</code> page, uses the <b>calendar</b> to hold tentative dates, watches <b>email</b> for confirmations, and uses the <b>phone</b> to call a place that won't book online. Periodic check-ins surface the next decision instead of letting it rot in your head.</div></div>
+    </div>
+
+    <div class="recipe">
+      <h4><span class="rn">06</span>Birthday &amp; activity watch</h4>
+      <div class="say"><p><em>Watch for birthdays and anniversaries and give me a week's notice, and remind me about the kids' recurring activities.</em></p></div>
+      <div class="result"><span class="arr">→</span><div>A daily 9am pass over the wiki's <code>people/</code> files surfaces what's coming up. Birthdays stop sneaking up on you.</div></div>
+    </div>
+
+    <p>Managing tasks is conversational too: <em>"list my scheduled tasks," "pause the morning brief," "move the dinner planning to Saturday."</em></p>
+  </section>
+
+  <!-- 9 ADVANCED -->
+  <section id="advanced">
+    <div class="sechead">
+      <div class="eyebrow">09 · Power-ups</div>
+      <h2>The next layer — phone, Notion, images</h2>
+    </div>
+
+    <h3>📞 Outbound phone calls</h3>
+    <p>The jaw-dropper: Nano can pick up the phone.</p>
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <div class="step-t">Install <span class="where cc">Claude Code</span></div>
+      <div class="tell"><p><em>Give it the ability to make outbound phone calls.</em></p></div>
+    </div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <div class="step-t">Connect the calling provider</div>
+      <p>Sign up for <a href="https://bland.ai">Bland AI</a> when prompted, grab an API key, and the vault stores it. It's <b>outbound only</b>, recording is <b>off by default</b>, and there's a <b>per-day call cap</b>.</p>
+    </div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <div class="step-t">Set your guardrails</div>
+      <div class="say"><p><em>Keep calls to 3/day max, and always confirm with me before any call that commits us to something.</em></p></div>
+    </div></div>
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <div class="step-t">Use it</div>
+      <div class="say"><p><em>Call the Italian place on Main and book a table for two, Friday at 7. Text me the confirmation.</em></p></div>
+    </div></div>
+    <div class="callout note"><div class="ic">ℹ</div><div>I personally run calls through <a href="https://vapi.ai">Vapi</a> instead of Bland — same idea, different voice provider — but the built-in calling integration is the clean, supported path, so start there.</div></div>
+
+    <h3>🗂 Notion as a tool</h3>
+    <p>No one-command skill, but the <strong>pattern</strong> is the same one Gmail and Calendar use — and it works for <em>any</em> MCP-compatible tool. In Claude Code, just say:</p>
+    <div class="tell"><p><em>Add Notion as a tool for this agent.</em></p></div>
+    <p>It installs the Notion MCP server, wires it to a placeholder credential, and has you connect Notion in the vault so the <strong>real</strong> token is injected at request time — exactly like email and calendar, never sitting in the container. More hands-on than the one-ask integrations above, but the principle — <em>stub in the box, real secret injected by the vault</em> — never changes.</p>
+
+    <h3>🎨 Images &amp; media</h3>
+    <p>The assistant can also generate images (a birthday-invite graphic, a quick mockup). This one is the most bespoke — a small skill plus a hosted image API routed through the vault — so I'll leave it at the pattern level: <em>capability + API behind OneCLI.</em> Describe it to Claude Code and build it together.</p>
+  </section>
+
+  <!-- 10 PRIVACY -->
+  <section id="privacy">
+    <div class="sechead">
+      <div class="eyebrow">10 · Trust &amp; upkeep</div>
+      <h2>Living with it — privacy &amp; upkeep</h2>
+    </div>
+    <p>Wiring an AI into your family's life is only smart if you've thought about the edges. The posture I run:</p>
+    <ul class="check">
+      <li><span class="ck"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Isolation by default</b> — each agent is a container that sees only what I mount. Nothing crosses between groups unless I wire it.</div></li>
+      <li><span class="ck"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Secrets stay out of reach</b> — every credential is injected by the vault at request time; the container never holds a usable key.</div></li>
+      <li><span class="ck"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Unknown senders are gated</b> — <em>request approval</em> means a stranger added to a group can't get my assistant to do anything until I say so.</div></li>
+      <li><span class="ck"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Private stays private</b> — a standing rule never leaks private-DM context into the family group; non-family groups are privacy-locked.</div></li>
+      <li><span class="ck"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Some things are a hard no</b> — I told it to flatly refuse credential-recon asks (password resets, 2FA codes, full card numbers), however they're phrased.</div></li>
+    </ul>
+    <p><strong>Upkeep is light.</strong> The service restarts itself if it crashes and starts on its own when you log in. When I want to check on it — or restart it, or change anything — I just ask Claude Code: <em>"anything weird in NanoClaw's logs today?"</em> or <em>"restart NanoClaw."</em> It knows where everything lives, so there's nothing to maintain by hand.</p>
+    <div class="tell"><p><em>Restart NanoClaw, and tell me if anything looks off in the logs.</em></p></div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="foot">
+  <div class="foot-in">
+    <h2>Make it your household's</h2>
+    <p>A shared memory, the chat your family already runs on, a few tools, and the nerve to let it act on its own. Start with the install and the wiki, move it into the family chat, then add one proactive recipe and live with it for a week — you'll know within days which piece your house wants next. You're never locked into my choices: it's <em>your family's</em> chief of staff, built on a codebase small enough that you and Claude Code can bend it into the exact shape of your life together.</p>
+    <a class="hero-cta" href="https://github.com/qwibitai/nanoclaw">Go build one
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="byline">Built &amp; written by <a href="https://www.linkedin.com/in/shlomog/">Shlomo Garbi</a> — say hi on LinkedIn</div>
+    <div class="fine">All names, numbers, and personal details in the story are placeholders.</div>
+  </div>
+</footer>
+
+<script>
+  // copy buttons — copy the command, stripping shell comments
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pre=btn.closest('.term').querySelector('pre');
+      var text=pre.innerText.replace(/^\s*#.*$/gm,'').trim();
+      navigator.clipboard.writeText(text).then(function(){
+        btn.textContent='Copied ✓';
+        setTimeout(function(){btn.textContent='Copy';},1400);
+      }).catch(function(){});
+    });
+  });
+  // scroll-spy nav highlight
+  var links=Array.prototype.slice.call(document.querySelectorAll('.nav-links a'));
+  var map={}; links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  if('IntersectionObserver' in window){
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(l){l.classList.remove('active');});
+          var a=map[e.target.id]; if(a)a.classList.add('active');
+        }
+      });
+    },{rootMargin:'-45% 0px -50% 0px'});
+    document.querySelectorAll('main section[id]').forEach(function(s){obs.observe(s);});
+  }
+</script>
+</body>
+</html>
