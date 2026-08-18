@@ -20,6 +20,8 @@ summer-vacation project) · outbound phone calls · privacy posture.
 
 Prefer Markdown? The same guide: [nano-chief-of-staff.md](nano-chief-of-staff.md)
 
+**In Hebrew / בעברית:** [read the guide](https://shlomog.github.io/family-ai-chief-of-staff/index.he.html) · [Markdown](nano-chief-of-staff.he.md)
+
 ---
 
 Built & written by [Shlomo Garbi](https://www.linkedin.com/in/shlomog/) — say hi on LinkedIn.
